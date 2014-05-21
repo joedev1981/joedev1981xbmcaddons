@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 """
-This is a port of Chris Veness' AES implementation: http://www.movable-type.co.uk/scripts/aes.html
+This is a port of Chris Venessu' AES implementation: http://www.movable-type.co.uk/scripts/aes.html
 Copyright ©2005-2008 Chris Veness. Right of free use is granted for all
 commercial or non-commercial use. No warranty of any form is offered.
 Ported in 2009 by Markus Birth <markus@birth-online.de>
