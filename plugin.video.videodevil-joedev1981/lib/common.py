@@ -1,5 +1,4 @@
-# -*- coding: latin-1 -*-
-
+import sys, traceback
 def smart_unicode(s):
     if not s:
         return ''
@@ -11,7 +10,8 @@ def smart_unicode(s):
                 s = unicode(str(s), 'UTF-8')
         elif not isinstance(s, unicode):
             s = unicode(s, 'UTF-8')
-    except:
+    except UnicodeDecodeError:
+        traceback.print_exc(file = sys.stdout)
         if not isinstance(s, basestring):
             if hasattr(s, '__unicode__'):
                 s = unicode(s)

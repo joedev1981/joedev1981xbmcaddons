@@ -79,7 +79,8 @@ class CRuleSite:
         self.start = u''
         self.txheaders = {
             u'User-Agent': u'Mozilla/5.0 (Windows; U; Windows NT 5.2; en-GB; rv:1.8.1.18) Gecko/20081029 Firefox/2.0.0.18',
-            u'Accept-Charset':u'ISO-8859-1,utf-8;q=0.7,*;q=0.7'
+            u'Accept-Charset':u'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+            u'Accept-encoding': u'gzip, deflate'
         }
         self.skill = u''
         self.sort = []
@@ -124,8 +125,8 @@ def loadLocal(lItem, search_phrase = None):
             lItem[u'cfg'] = filename
     else:
         filename = lItem[u'cfg']
-    if u'type' in lItem and lItem[u'type'] == u'search' and search_phrase == None:
-        search_phrase = getSearchPhrase()
+#    if u'type' in lItem and lItem[u'type'] == u'search' and search_phrase == None:
+#        search_phrase = getSearchPhrase()
     while keys:
         old_line = len(keys)
         while keys and keys[-1].startswith(u'site_'):
@@ -172,8 +173,6 @@ def loadLocal(lItem, search_phrase = None):
                     site.sort.append(values.pop())
             if loadKey(u'site_startRE'):
                 site.startRE = values.pop()
-            if loadKey(u'site_cfg'):
-                site.cfg = values.pop()
             if len(keys) == old_line:
                 log(u'Syntax Error: "%s" is invalid.' % filename)
                 del keys[-1]
@@ -230,8 +229,11 @@ def loadLocal(lItem, search_phrase = None):
                         site.rules.append(rule_tmp)
                     elif rule_tmp.type == u'category' and not os.path.isfile(os.path.join(allsitesDir, rule_tmp.type + u'.list')):
                         site.rules.append(rule_tmp)
-                elif mode == u'VIEW_DIRECTORY':
+                elif mode == u'VIEWALL_DIRECTORY':
                     if rule_tmp.type == u'category' and not os.listdir(os.path.join(allsitesDir, rule_tmp.type)):
+                        site.rules.append(rule_tmp)
+                elif mode == u'VIEW_RSS_DIRECTORY':
+                    if not rule_tmp.type.startswith(u'video'):
                         site.rules.append(rule_tmp)
                 else:
                     site.rules.append(rule_tmp)
@@ -244,7 +246,7 @@ def loadLocal(lItem, search_phrase = None):
             if loadKey(u'link_title'):
                 tmp = {}
                 if values[-1].startswith(u'video.devil.locale'):
-                    values[-1] = u'  ' + __language__(int(values[-1][19:])) + u'  '
+                    values[-1] = __language__(int(values[-1][19:]))
                 tmp[u'title'] = values.pop()
             while tmp != None and keys[-1] != u'link_url':
                 if values[-1].startswith(u'video.devil.image'):
@@ -260,9 +262,15 @@ def loadLocal(lItem, search_phrase = None):
                 else:
                     tmp = inheritInfos(tmp, lItem)
                     if site != None:
+                        tmp[u'title'] = u'  ' + tmp[u'title'] + u'  '
                         if ext == u'cfg' and tmp[u'type'] == u'once':
                             tmp[u'type'] = u'links'
                         site.links[tmp[u'type']] = (tmp, [tmp])
+                        if mode == u'VIEW_RSS' or mode == u'VIEWALL_RSS' or mode == u'VIEWALL_SEARCH':
+                            for i in range(len(site.rules) - 1, 0, -1):
+                                if site.rules[i].type == tmp[u'type']:
+                                    log('deleting rule type: "%s"' % tmp[u'type'])
+                                    del site.rules[i]
                     else:
                         links.append(tmp)
                 tmp = None
@@ -332,6 +340,9 @@ class localParser:
         return None
 
     def load_site(self, lItem = {u'url': u'sites.list'}):
+        if u'type' in lItem and lItem[u'type'] == u'search':
+            self.site = loadLocal(lItem, getSearchPhrase())
+            return self.site
         self.site = loadLocal(lItem)
         return self.site
 
@@ -359,6 +370,9 @@ class localParser:
             sites = map(loadLocal, self.links) + search_as_category_sites
             self.links += search_as_category_links
             self.sites = zip(sites, self.links)
+        elif u'type' in lItem and lItem[u'type'] == u'search':
+            search_phrase = getSearchPhrase()
+            self.sites = zip([loadLocal(link, search_phrase) for link in self.links], self.links)
         else:
             self.sites = zip(map(loadLocal, self.links), self.links)
         return None

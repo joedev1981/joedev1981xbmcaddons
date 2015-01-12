@@ -10,7 +10,7 @@ import xbmc, xbmcgui
 
 from lib.common import inheritInfos, smart_unicode
 
-from lib.utils.encodingUtils import clean_safe
+from lib.utils.encodingUtils import clean_safe, decode
 from lib.utils.fileUtils import smart_read_file
 import sesame
 
@@ -27,17 +27,19 @@ log = sys.modules["__main__"].log
 USERAGENT = u'Mozilla/5.0 (Windows; U; Windows NT 5.2; en-GB; rv:1.8.1.18) Gecko/20081029 Firefox/2.0.0.18'
 
 urlopen = urllib2.urlopen
-cj = cookielib.LWPCookieJar()
+cj = cookielib.MozillaCookieJar(xbmc.translatePath(os.path.join(settingsDir, 'cookies.txt')))
 Request = urllib2.Request
 
 if cj != None:
-    if os.path.isfile(xbmc.translatePath(os.path.join(settingsDir, 'cookies.lwp'))):
-        cj.load(xbmc.translatePath(os.path.join(settingsDir, 'cookies.lwp')))
+    try:
+        cj.load()
+    except IOError as e:
+        if e.errno == errno.ENOENT:
+            log('Error loading cookies from file: "%s"' % os.path.join(settingsDir, 'cookies.txt'))
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    urllib2.install_opener(opener)
 else:
     opener = urllib2.build_opener()
-    urllib2.install_opener(opener)
+urllib2.install_opener(opener)
 
 def parseActions(item, convActions, url = None):
     for convAction in convActions:
@@ -156,17 +158,19 @@ class CCatcherList:
         redirected = self.parseVideoPage(lItem[u'url'])
         if redirected != None:
             return redirected.videoItem
-        if self.link != None:
-            tmp = {
-                u'url': self.link,
-                u'extension': self.videoExtension
-                }
-            if self.player != None:
-                tmp[u'player'] = self.player
-            tmp = inheritInfos(tmp, lItem)
-            return tmp
-        elif len(self.urlList) > 0:
+        if self.link == None and len(self.urlList) > 0:
             self.selectLink()
+#        if self.link != None:
+#            tmp = {
+#                u'url': self.link,
+#                u'extension': self.videoExtension
+#                }
+#            if self.player != None:
+#                tmp[u'player'] = self.player
+#            tmp = inheritInfos(tmp, lItem)
+#            return tmp
+#        elif len(self.urlList) > 0:
+#            self.selectLink()
         if self.link != None:
             tmp = {
                 u'url': self.link,
@@ -197,7 +201,7 @@ class CCatcherList:
                 site.data = self.value.pop()
             if self.loadKey(u'header'):
                 index = self.value[-1].find(u'|')
-                site.txheaders[value[-1][:index]] = value[-1][index+1:]
+                site.txheaders[self.value[-1][:index]] = self.value[-1][index+1:]
                 del self.value[-1]
             if self.loadKey(u'limit'):
                 site.limit = int(self.value.pop())

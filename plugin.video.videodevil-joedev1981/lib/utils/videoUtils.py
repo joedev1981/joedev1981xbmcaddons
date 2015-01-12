@@ -17,7 +17,7 @@ imgDir = sys.modules["__main__"].imgDir
 catDir = sys.modules["__main__"].catDir
 
 def playVideo(videoItem):
-    if videoItem[u'url'] == None:
+    if videoItem == None or videoItem[u'url'] == None:
         return
     url = videoItem[u'url']
     if u'icon' not in videoItem:

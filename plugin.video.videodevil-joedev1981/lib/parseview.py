@@ -24,6 +24,7 @@ allsitesDir = sys.modules["__main__"].allsitesDir
 resDir = sys.modules["__main__"].resDir
 imgDir = sys.modules["__main__"].imgDir
 catDir = sys.modules["__main__"].catDir
+log = sys.modules["__main__"].log
 
 sort_dict = {
     u'label' : xbmcplugin.SORT_METHOD_LABEL, 
@@ -91,6 +92,8 @@ class parseView:
 
     def run(self, lItem):
         #loadLocal
+        start = time.clock()
+        log(str(mode))
         if mode == u'START':
             localParser.load_links(lItem)
             totalItems = len(localParser.links)
@@ -111,7 +114,8 @@ class parseView:
             type_dict = {}
             for type, infos, items in remoteParser.items.files():
                 if type == u'next' or (mode == u'VIEW_RSS_DIRECTORY' and type == lItem[u'type']):
-                    addListItems(items)
+                    log('type added = %s(%d)' % (type,len(items)))
+                    addListItems(items, type, lItem)
                 else:
                     create_list_and_listItem(cacheDir, type, items, infos, lItem)
             for type, infos, items in localParser.site.links.files():
@@ -186,4 +190,5 @@ class parseView:
                     addListItem(mode.selectLinkMode(link), totalItems)
         for sort_method in self.sort:
             xbmcplugin.addSortMethod(handle = self.handle, sortMethod = sort_dict[sort_method])
+        log('time elapsed = %s' % (time.clock() - start))
         return 0

@@ -34,7 +34,10 @@ handle = int(sys.argv[1])
 
 def log(s):
     if enable_debug:
-        xbmc.log(s)
+        try:
+            xbmc.log(s)
+        except UnicodeEncodeError:
+            xbmc.log(smart_unicode(s).encode('ISO-8859-1'))
     return
 
 from lib.common import smart_unicode
@@ -56,12 +59,11 @@ def decodeUrl(url):
                 mode.setMode(info_value)
             else:
                 if info_name == 'url':
-                    info_value.replace('\xa0', ' ')
+                    info_value = info_value.replace('%20', '%2520')
                 item[smart_unicode(info_name)] = urllib.unquote(smart_unicode(info_value))
     return item
 
 try:
-    print(sys.argv)
     if len(sys.argv[2]) <= 2:
         consenting = True
         if addon.getSetting('hide_warning') == 'false':
@@ -93,16 +95,11 @@ try:
                 'Catchers directory: ' + str(catDir) + '\n' +
                 'All sites directory: ' + str(allsitesDir)
             )
-            log('Purging cache directory')
+            log('Purging cache directories')
             for root, dirs, files in os.walk(cacheDir, topdown = False):
                 for name in files:
                     os.remove(os.path.join(root, name))
-            log('Cache directory purged')
-            xbmc.log('Purging all sites directory')
             for root, dirs, files in os.walk(allsitesDir):
-                print(root)
-                print(dirs)
-                print(files)
                 if root == allsitesDir:
                     for name in files:
                         if not enable_debug:
@@ -121,7 +118,7 @@ try:
                             continue
                     for name in files:
                         os.remove(os.path.join(root, name))
-            xbmc.log('All sites directory purged')
+            log('Cache directories purged')
             from lib.parseview import parseView
             parseView(handle, decodeUrl('sites.list'))
             if int(addon.getSetting('list_view')) == 0:
@@ -130,10 +127,8 @@ try:
             xbmc.log('End of directory')
     else:
         params = sys.argv[2][1:]
-        log(
-            'currentView: ' +
-            urllib.unquote(repr(params).replace('&', '\n')))
         lItem = decodeUrl(params)
+        log('currentView:\n' + '\n'.join((k + '=' + v for k, v in lItem.iteritems())))
         if mode == 'PLAY' or mode == 'DOWNLOAD':
             from lib.videoparser import CCatcherList
             videoItem = CCatcherList(lItem).videoItem

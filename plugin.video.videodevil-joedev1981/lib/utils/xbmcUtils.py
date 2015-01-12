@@ -28,33 +28,69 @@ def getSearchPhrase():
     addon.setSetting(u'curr_search', search_phrase)
     return search_phrase.replace(u' ', u'+')
 
-def addListItems(items):
-#    map(addListItem, map(mode.selectItemMode, items))
-    for item in items:
-        addListItem(mode.selectItemMode(item), len(items))
+exclusions = [u'url', u'title', u'icon', u'type', u'extension', u'duration']
+base_url = unicode(sys.argv[0]) + u'?'
+
+def addListItems(items, rule_type = None, lItem = None, totalItems = 50):
+    #need to run time tests
+    if rule_type != None and lItem != None:
+        if rule_type != u'once':
+            base_url = unicode(sys.argv[0]) + u'?mode=' + unicode(mode.selectItemMode({u'type': rule_type})[u'mode']) + u'&'
+            inherited = [(info_name, lItem[info_name]) for info_name in lItem.keys() if info_name not in items[0].keys()]
+            if inherited:
+                base_url += codeUrl(dict(inherited)) + u'&'
+            lizs = [(base_url + codeUrl(item), xbmcgui.ListItem(item[u'title'], item[u'title'], item[u'icon'], item[u'icon']), True) for item in items]
+            if rule_type == u'video':
+                name = __language__(30007)
+                context_menus = [[(name, u'XBMC.RunPlugin(%s&mode=%d)' % (liz[0], mode[u'DOWNLOAD']))] for liz in lizs]
+            else:
+                context_menus = [[] for liz in lizs]
+            for info_name in items[0].keys():
+                if info_name not in exclusions:
+                    if info_name.startswith(u'context.'):
+                        name = info_name[8:]
+                        for i, item in enumerate(items):
+                            cItem = item.copy()
+                            cItem[u'url'] = item[info_name]
+                            context_menus[i].append((name, u'XBMC.RunPlugin(%s)' % (base_url + codeUrl(cItem))))
+                    else:
+                        if info_name.endswith(u'.int'):
+                            name = info_name[:-4]
+                            for i, item in enumerate(items):
+                                lizs[i][1].setInfo(u'Video', infoLabels = {name: int(item[info_name])})
+                        elif info_name.endswith(u'.once'):
+                            name = info_name[:-4]
+                            for i, item in enumerate(items):
+                                lizs[i][1].setInfo(u'Video', infoLabels = {name: item[info_name]})
+                        else:
+                            for i, item in enumerate(items):
+                                lizs[i][1].setInfo(u'Video', infoLabels = {info_name: item[info_name]})
+            for i, item in enumerate(items):
+                lizs[i][1].addContextMenuItems(context_menus[i])
+            xbmcplugin.addDirectoryItems(int(sys.argv[1]), lizs, totalItems)
+    else:
+#       map(addListItem, map(mode.selectItemMode, items))
+        for item in items:
+            addListItem(mode.selectItemMode(item), len(items))
     return None
 
 def addListLinks(items):
     map(addListItem, map(mode.selectLinkMode, items))
     return None
 
-exclusions = [u'url', u'title', u'icon', u'type', u'extension', u'duration']
-base_url = unicode(sys.argv[0]) + u'?' 
-def addListItem(item, totalItems = 0):
+def addListItem(item, totalItems = 50):
     if item[u'type'] != u'once':
         url = base_url + codeUrl(item)
         liz = xbmcgui.ListItem(item[u'title'], item[u'title'], item[u'icon'], item[u'icon'])
-        context_menu_items = []
         if item[u'type'] == u'video':
-            action = u'XBMC.RunPlugin(%s&mode=%d)' % (url, mode[u'DOWNLOAD'])
-            context_menu_items.append((__language__(30007), action))
+            context_menu = [(__language__(30007), u'XBMC.RunPlugin(%s&mode=%d)' % (url, mode[u'DOWNLOAD']))]
+        else:
+            context_menu = []
         for info_name, info_value in item.iteritems():
             if info_name.startswith(u'context.'):
-                cItem = {}
+                cItem = item.copy()
                 cItem[u'url'] = info_value
-                cItem = inheritInfos(cItem, item)
-                action = u'XBMC.RunPlugin(%s)' % (sys.argv[0] + u'?' + codeUrl(cItem))
-                context_menu_items.append((info_name[8:], action))
+                context_menu.append((info_name[8:], u'XBMC.RunPlugin(%s)' % (base_url + codeUrl(cItem))))
             elif info_name not in exclusions:
                 if info_name.endswith(u'.int'):
                     liz.setInfo(u'Video', infoLabels = {info_name[:-4]: int(info_value)})
@@ -62,13 +98,9 @@ def addListItem(item, totalItems = 0):
                     liz.setInfo(u'Video', infoLabels = {info_name[:-5]: info_value})
                 else:
                     liz.setInfo(u'Video', infoLabels = {info_name: info_value})
-        liz.addContextMenuItems(context_menu_items)
+        liz.addContextMenuItems(context_menu)
         xbmcplugin.addDirectoryItem(int(sys.argv[1]), url, liz, True, totalItems)
     return None
 
 def codeUrl(item):
-    # in Frodo url parameters need to be encoded
-    # ignore characters that can't be converted to ascii
-    params = [info_name + u'=' + info_value.replace(u'&', u'%26') for info_name, info_value in item.iteritems() if not info_name.endswith(u'.once')]
-    params = u'&'.join(params)
-    return params
+    return u'&'.join((info_name + u'=' + info_value.replace(u'&', u'%26') for info_name, info_value in item.iteritems() if not info_name.endswith(u'.once')))

@@ -7,7 +7,12 @@ import urllib, urllib2
 import cookielib
 import threading
 import Queue
+import gzip
+import zlib
 import time
+from io import BytesIO as _StringIO
+import struct
+import errno
 
 import xbmc
 
@@ -33,24 +38,26 @@ enable_debug = sys.modules["__main__"].enable_debug
 log = sys.modules["__main__"].log
 
 urlopen = urllib2.urlopen
-cj = cookielib.LWPCookieJar()
+cj = cookielib.MozillaCookieJar(xbmc.translatePath(os.path.join(settingsDir, 'cookies.txt')))
 Request = urllib2.Request
 
 if cj != None:
-    if os.path.isfile(xbmc.translatePath(os.path.join(settingsDir, 'cookies.lwp'))):
-        cj.load(xbmc.translatePath(os.path.join(settingsDir, 'cookies.lwp')))
+    try:
+        cj.load()
+    except IOError as e:
+        if e.errno == errno.ENOENT:
+            log('Error loading cookies from file: "%s"' % os.path.join(settingsDir, 'cookies.txt'))
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-    urllib2.install_opener(opener)
 else:
     opener = urllib2.build_opener()
-    urllib2.install_opener(opener)
+urllib2.install_opener(opener)
 
 def parseActions(item, convActions, url = None):
     for convAction in convActions:
-        if convAction.find(u'(') != -1:
+        if u'(' in convAction:
             action = convAction[0:convAction.find(u'(')]
             param = convAction[len(action) + 1:-1]
-            if param.find(u', ') != -1:
+            if u', ' in param:
                 params = param.split(u', ')
                 if action == u'replace':
                     item[params[0]] = item[params[0]].replace(params[1], params[2])
@@ -110,37 +117,76 @@ def fetchHTML(site, lItem):
             traceback.print_exc(file = sys.stdout)
     else:
         data = handle.read()
+        compression = handle.info().get('Content-Encoding', handle.info().get('content-encoding', None))
         handle.close()
-        return site, lItem, data
+        return site, lItem, data, compression
     return 'Skipping due to failure'
 
-def loadRemote(site, lItem, data):
+def loadRemote(site, lItem, data, compression):
+    items = CItemTypes()
+    if compression == 'gzip':
+        try:
+            data = gzip.GzipFile(fileobj=_StringIO(data)).read()
+        except (IOError, struct.error), e:
+            log('Skipping due to gzip decompression failure')
+            return items
+    elif compression == 'deflate':
+        try:
+            data = zlib.decompress(data)
+        except zlib.error, e:
+            try:
+                # The data may have no headers and no checksum.
+                data = zlib.decompress(data, -15)
+            except zlib.error, e:
+                log('Skipping due to zlib decompression failure')
+                return items
     if enable_debug:
         f = open(os.path.join(cacheDir, site.cfg + u'.page.html'), 'w')
         f.write('<Title>'+ site.start + '</Title>\n\n')
         f.write(data)
         f.close()
-    items = CItemTypes()
     data = smart_unicode(data)
-    if mode == u'VIEWALL_DIRECTORY':
-        lock = [u'video', u'video_list']
+    if site.startRE:
+        point = data.find(site.startRE)
+        if point == -1:
+            log('startRe not found for %s' % site.cfg)
+            point = 0
     else:
-        lock = []
+        point = 0
+#    if mode == u'VIEWALL_DIRECTORY' or mode == u'VIEW_RSS_DIRECTORY':
+#        lock = [u'video', u'video_list']
+#    else:
+#        lock = []
+    lock = []
     for item_rule in site.rules:
         rule_items, tmp_rule_items = [], []
         if item_rule.type in lock:
             continue
-        elif item_rule.skill.find(u'recursive') != -1:  #Need to fix this
+        elif item_rule.skill.find(u'recursive') != -1:
             site.start = tmp[u'url']
-            loadRemote(site, lItem, fetchHTML(site, lItem)[2])
-            tmp = None
+            args = fetchHTML(site, lItem)
+            if not (isinstance(args, basestring) and args == 'Skipping due to failure'):
+                for type, infos, items in loadRemote(*args).files():
+                    items[type] = (infos, items)
+            else:
+                log('Skipping recursive rule due to failure')
         else:
-            item_rule.infosRE = re.compile(item_rule.infos, re.IGNORECASE + re.DOTALL + re.MULTILINE)
-            reInfos = item_rule.infosRE.findall(data)
+            if item_rule.type != u'next':
+                reInfos = re.findall(item_rule.infos, data[point:], re.IGNORECASE + re.DOTALL + re.MULTILINE)
+            else:
+                match = re.search(item_rule.infos, data[point:], re.IGNORECASE + re.DOTALL + re.MULTILINE)
+                if match:
+                    log('found next page')
+                    reInfos = match.groups()
+                else:
+                    reInfos = None
             if reInfos:
                 if not item_rule.type.startswith(u'video'):
                     lock.append(item_rule.type)
-                tmp_rule_items = [dict(zip(item_rule.order, infos_values)) for infos_values in reInfos]
+                if not isinstance(reInfos[0], basestring):
+                    tmp_rule_items = [dict(zip(item_rule.order, infos_values)) for infos_values in reInfos]
+                else:
+                    tmp_rule_items = [dict(zip(item_rule.order, reInfos)) for infos_value in reInfos]
                 for info in item_rule.info_list:
                     if info.name in item_rule.order:
                         if info.build.find(u'%s') != -1:
@@ -183,9 +229,8 @@ def loadRemote(site, lItem, data):
                     for item in rule_items:
                         item[u'title'] = u' ' + item[u'title'] + u' '
             if item_rule.curr:
-                item_rule.currRE = re.compile(item_rule.curr, re.IGNORECASE + re.DOTALL + re.MULTILINE)
-                reCurr = item_rule.currRE.findall(data)
-                if len(reCurr) >= 1:
+                reCurr = re.findall(item_rule.curr, data[point:], re.IGNORECASE + re.DOTALL + re.MULTILINE)
+                if reCurr:
                     lock.append(item_rule.type)
                 for infos_value in reCurr:
                     tmp = currBuilder(site, item_rule, lItem, site.start, infos_value = infos_value)
@@ -196,16 +241,18 @@ def loadRemote(site, lItem, data):
                         rule_items.append(tmp)
             if rule_items:
                 if item_rule.type.startswith(u'video'):
-                    addListItems([inheritInfos(item, lItem) for item in rule_items])
+#                    start = time.clock()
+                    addListItems(rule_items, item_rule.type, lItem)
+#                    print('addListItems took = %s' % (time.clock() - start))
                 else:
-                    tmp_infos = {}
+                    tmp_infos = lItem.copy()
                     tmp_infos[u'type'] = item_rule.type
                     for info in item_rule.info_list:
                         if info.name == u'title':
                             tmp_infos[u'title'] = info.build
                         elif info.name == u'icon':
                             tmp_infos[u'icon'] = info.build
-                    items[item_rule.type] = (inheritInfos(tmp_infos, lItem), [inheritInfos(item, lItem) for item in rule_items])
+                    items[item_rule.type] = (tmp_infos, [inheritInfos(item, lItem) for item in rule_items])
     return items
 
 # Helper functions for loadRemote
@@ -263,7 +310,9 @@ class ThreadUrl(threading.Thread):
     def run(self):
         args = self.fetch_queue.get()
         site, lItem = args
+        start = time.clock()
         results = fetchHTML(site, lItem)
+        log('%s took = %s' % (site.cfg, (time.clock() - start)))
         self.parse_queue.put(results)
         self.fetch_queue.task_done()
         while self.continuous:
@@ -284,41 +333,39 @@ class remoteParser:
         self.task_count = 0
         self.items = CItemTypes()
 
-    def start_fetch_threads(self):
-        for fetch_thread in self.fetch_threads:
-            fetch_thread.start()
-
-    def kill_fetch_threads(self):
-        for fetch_thread in self.fetch_threads:
-            self.fetch_queue.put(u'quit')
-
-    def populate_fetch_queue(self, tasks):
-        for task in tasks:
-            self.fetch_queue.put(task)
-
-    def wait_for_fetch_queue(self):
-        self.fetch_queue.join()
-
-    def wait_for_parse_queue(self):
-        self.parse_queue.join()
-
     def spawn_fetch_threads(self, count): #by default thread does not loop continuously set 3rd arg to True loop continuously
         for i in range(count):
             fetch_thread = ThreadUrl(self.fetch_queue, self.parse_queue)
             fetch_thread.setDaemon(True)
             self.fetch_threads.append(fetch_thread)
 
+    def start_fetch_threads(self):
+        for fetch_thread in self.fetch_threads:
+            fetch_thread.start()
+
+    def populate_fetch_queue(self, tasks):
+        for task in tasks:
+            self.fetch_queue.put(task)
+
+    def kill_fetch_threads(self): #Not sure if this is necessary
+        for fetch_thread in self.fetch_threads:
+            self.fetch_queue.put(u'quit')
+
     def remoteDataMiner(self):
         for i in range(self.task_count):
             args = self.parse_queue.get()
-            if isinstance(args, basestring) and args == 'Skipping due to failure':
-                log('Skipping due to failure')
-            else:
-                site, lItem, data = args
-                items = loadRemote(site, lItem, data)
+            if not (isinstance(args, basestring) and args == 'Skipping due to failure'):
+                site, lItem, data, compression = args
+                items = loadRemote(site, lItem, data, compression)
                 for type, infos, items in items.files():
                     self.items[type] = (infos, items)
             self.parse_queue.task_done()
+
+    def wait_for_fetch_queue(self):
+        self.fetch_queue.join()
+
+    def wait_for_parse_queue(self):
+        self.parse_queue.join()
 
     def main(self, tasks):
         self.task_count += len(tasks)
@@ -334,9 +381,10 @@ class remoteParser:
             self.wait_for_parse_queue()
         elif len(tasks) == 1:
             args = fetchHTML(*tasks[0])
-            if isinstance(args, str) and args == 'Skipping due to failure':
-                log('Skipping due to failure')
-            else:
-                self.items = loadRemote(*args)
-        cj.save(os.path.join(settingsDir, 'cookies.lwp'))
+            if not (isinstance(args, basestring) and args == 'Skipping due to failure'):
+                site, lItem, data, compression = args
+                items = loadRemote(site, lItem, data, compression)
+                for type, infos, items in items.files():
+                    self.items[type] = (infos, items)
+        cj.save(os.path.join(settingsDir, 'cookies.txt'))
         return self.items

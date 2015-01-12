@@ -190,6 +190,13 @@ link_director=VideoDevil
 link_icon=http://www.tnaflix.com/images/logo_left.jpg
 link_url=tnaflix.com.cfg
 ########################################################
+link_title=Tube8
+link_type=rss
+link_genre=Tube8
+link_director=VideoDevil
+link_icon=video.devil.image|tube8.png
+link_url=tube8.com.cfg
+########################################################
 link_title=xHamster
 link_type=rss
 link_genre=xHamster
