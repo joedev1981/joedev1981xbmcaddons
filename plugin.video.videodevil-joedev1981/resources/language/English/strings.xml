@@ -58,4 +58,36 @@
     <string id="30115">Kids</string>
     <string id="30116">Music</string>
     <string id="30117">Related videos</string>
+    <string id="30218">General</string>
+    <string id="30247">Folder</string>
+    <string id="30259">View mode in Confluence</string>
+    <string id="30260">Advanced</string>
+    <string id="30271">Video Thumbnails</string>
+    <string id="30272">Thumbnails Everywhere</string>
+    <string id="30273">XBMC Default</string>
+
+    <!-- Plugin settings strings -->
+    <string id="101">Notification length</string>
+    <string id="102">Hide progress during playback</string>
+    <string id="103">Location of rtmpdump executable</string>
+    <string id="104">Location of vlc executable</string>
+    <string id="105">Location of mplayer executable</string>
+
+    <!-- messages -->
+    <string id="201">Preparing download</string>
+    <string id="202">Downloading</string>
+    <string id="203">Download complete</string>
+    <string id="204">Download Failed</string>
+    <string id="205">Start Download</string>
+    <string id="206">Delete Download</string>
+    <string id="207">Error</string>
+    <string id="208">Error</string>
+
+    <!-- errors -->
+    <string id="301">Error</string>
+    <string id="302">vlc/mplayer/rtmpdump binary not found</string>
+
+    <string id="30067">Start Queue</string>
+    <string id="30068">Stop Queue</string>
+    <string id="30069">Settings</string>
 </strings>

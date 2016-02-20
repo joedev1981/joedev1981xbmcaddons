@@ -1,0 +1,14 @@
+########################################################
+#               Extremetube VideoCatcher               #
+########################################################
+url=%s
+header=Cookie|age_verified=1
+########################################################
+target=flashvars" value=".*video_url=(http[^']+[.](mp4|flv)[^&]+)
+actions=unquote(match)
+quality=standard
+########################################################
+target=quality_480p":"(http[^']+[.](mp4|flv)[^"]+)
+actions=replace(match, \/, /)
+quality=standard
+########################################################

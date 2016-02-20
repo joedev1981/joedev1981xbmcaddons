@@ -1,12 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-   <setting id="hide_warning" type="bool" label="30002" default="false"/>
-   <setting id="enable_debug" type="bool" label="20191" default="false"/>
-   <setting type="sep"/>
-   <setting id="custom_entry" type="bool" label="20192" default="false"/>
-   <setting id="player_type" type="enum" lvalues="30004|30005|30006" label="30003" default="0"/>
-   <setting id="video_type" type="enum" lvalues="30013|30014|30015|30016" label="30012" default="0"/>
-   <setting type="sep" />
-   <setting id="download" type="bool" label="30007" default="false"/>
-   <setting id="download_path" type="folder" enable="eq(-1,true)" source="video" label="30008"  option="writeable" default=""/>
-   <setting id="download_ask" type="bool" enable="eq(-2,false)" label="30009" default="false"/>
+  <!-- General -->
+  <category label="30218">
+    <setting id="hide_warning" type="bool" label="30002" default="false"/>
+    <setting id="enable_debug" type="bool" label="20191" default="false"/>
+    <setting type="sep"/>
+    <setting id="custom_entry" type="bool" label="20192" default="false"/>
+    <setting id="player_type" type="enum" lvalues="30004|30005|30006" label="30003" default="0"/>
+    <setting id="video_type" type="enum" lvalues="30013|30014|30015|30016" label="30012" default="0"/>
+    <setting type="sep" />
+    <setting id="download" type="bool" label="30007" default="false"/>
+    <setting id="download_path" type="folder" enable="eq(-1,true)" source="video" label="30008"  option="writeable" default=""/>
+    <setting id="download_ask" type="bool" enable="eq(-2,false)" label="30009" default="false"/>
+  </category>
+
+  <!-- Advanced -->
+  <category label="30260">
+    <setting id="list_view" type="enum" label="30259" lvalues="30271|30273" default="0" />
+  </category>
+
+  <!-- Folders -->
+  <category label="30247">
+    <setting id=" All Sites" type="bool" label="All Sites" default="true" />
+    <setting id="Ah-Me" type="bool" label="Ah-Me" default="true" />
+    <setting id="Anime-Erodouga" type="bool" label="Anime-Erodouga" default="true" />
+    <setting id="Empflix" type="bool" label="Empflix" default="true" />
+    <setting id="EPORNER" type="bool" label="EPORNER" default="true" />
+    <setting id="Ero-Erodouga" type="bool" label="Ero-Erodouga" default="true" />
+    <setting id="ExtremeTube" type="bool" label="ExtremeTube" default="true" />
+    <setting id="Fapdu" type="bool" label="Fapdu" default="true" />
+    <setting id="FreeHDPorn" type="bool" label="FreeHDPorn" default="true" />
+    <setting id="GirlfriendVideos" type="bool" label="GirlfriendVideos" default="true" />
+    <setting id="Hardsextube" type="bool" label="Hardsextube" default="true" />
+    <setting id="LubeTube" type="bool" label="LubeTube" default="true" />
+    <setting id="MadThumbs" type="bool" label="MadThumbs" default="true" />
+    <setting id="MofoSex" type="bool" label="MofoSex" default="true" />
+    <setting id="Motherless" type="bool" label="Motherless" default="true" />
+    <setting id="MovieFap" type="bool" label="MovieFap" default="true" />
+    <setting id="MoviesAnd" type="bool" label="MoviesAnd" default="true" />
+    <setting id="Orgasm" type="bool" label="Orgasm" default="true" />
+    <setting id="Pornhub" type="bool" label="Pornhub" default="true" />
+    <setting id="PornoMovies" type="bool" label="PornoMovies" default="true" />
+    <setting id="PornoTube" type="bool" label="PornoTube" default="true" />
+    <setting id="PornoXO" type="bool" label="PornoXO" default="true" />
+    <setting id="RedTube" type="bool" label="RedTube" default="true" />
+    <setting id="SpankWire" type="bool" label="SpankWire" default="true" />
+    <setting id="Slutload" type="bool" label="Slutload" default="true" />
+    <setting id="SunPorno" type="bool" label="SunPorno" default="true" />
+    <setting id="TimTube" type="bool" label="TimTube" default="true" />
+    <setting id="TnAflix" type="bool" label="TnAflix" default="true" />
+    <setting id="Tube8" type="bool" label="Tube8" default="true" />
+    <setting id="xHamster" type="bool" label="xHamster" default="true" />
+    <setting id="XVideos" type="bool" label="XVideos" default="true" />
+    <setting id="YouJizz" type="bool" label="YouJizz" default="true" />
+    <setting id="YouPorn" type="bool" label="YouPorn" default="true" />
+    <setting id="zzBoysfood" type="bool" label="zzBoysfood" default="true" />
+    <setting id="zzKeezMovies" type="bool" label="zzKeezMovies" default="true" />
+    <setting id="zzShufuni" type="bool" label="zzShufuni" default="true" />
+  </category>
 </settings>
