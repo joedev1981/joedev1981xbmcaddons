@@ -1,0 +1,30 @@
+########################################################
+#                 Youporn VideoCatcher                 #
+########################################################
+url=%s
+#startRE=currentVideo
+########################################################
+target=<a href="([^"]+1920-1080[^"]+)" class="buttona" >Download This Video</a>&nbsp;
+info=1920-1080
+quality=high
+priority=1
+########################################################
+target=<a href="([^"]+1280-720[^"]+)" class="buttona" >Download This Video</a>&nbsp;
+info=1280-720
+quality=high
+priority=2
+########################################################
+target=<a href="([^"]+640-480[^"]+)" class="buttona" >Download This Video</a>&nbsp;
+info=640-480
+quality=standard
+priority=3
+########################################################
+target=<a href="([^"]+480-270[^"]+)" class="buttona" >Download This Video</a>&nbsp;
+info=480-270
+quality=standard
+priority=4
+########################################################
+target=<a href="([^"]+-h264[^"]+)" class="buttona" >Download This Video</a>&nbsp;
+quality=standard
+priority=4
+########################################################
